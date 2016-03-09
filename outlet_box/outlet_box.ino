@@ -63,7 +63,7 @@ RF24Network network(radio);
 void setup() {
   Serial.begin(115200);
   printf_begin();
-  printf_P(PSTR("\n\rOUTLETBOX v1.0!!!!\n\r"));
+  printf_P(PSTR("\n\rOUTLETBOX v1.1!!!!\n\r"));
   
   pinMode(greenB, INPUT);
   pinMode(greenL, OUTPUT);
@@ -113,16 +113,18 @@ void loop() {
       GbuttonState = readingG;
       // only toggle the LED if the new button state is HIGH
       if (GbuttonState == HIGH) {
-        // set the Green LED & Relay from button press
+        // toggle the Green LED & Relay from button press
         outlet_state.green = !outlet_state.green;
         digitalWrite(greenL, outlet_state.green);
         digitalWrite(relayG, !outlet_state.green);  // should be the 'same' as LED, in the case of relays ON is LOW, OFF is HIGH
         send_state(to);
        }
-    } else if(readingR != RbuttonState){
+    }
+
+    if( readingR != RbuttonState){
       RbuttonState = readingR;
       if (RbuttonState == HIGH) {
-        // set the Green LED & Relay from button press :
+        // toggle the Green LED & Relay from button press :
         outlet_state.red = !outlet_state.red;
         digitalWrite(redL, outlet_state.red);
         digitalWrite(relayR, !outlet_state.red);
@@ -184,13 +186,16 @@ bool send_S(uint16_t to)
  * Add the node to the list of active nodes
  */
 void handle_R(RF24NetworkHeader& header){
-  outlet_state.red = !outlet_state.red;
-  digitalWrite(redL, outlet_state.red);
-  digitalWrite(relayR, !outlet_state.red);
   T_message_t payload;                                                                    // The 'T' message is just a ulong, containing the time
   network.read(header,&payload,sizeof(payload));
   printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.message,header.from_node);
-  send_state(to);
+  // toggle state
+  outlet_state.red = !outlet_state.red;
+  //set the state of led and buttons
+  digitalWrite(redL, outlet_state.red);
+  digitalWrite(relayR, !outlet_state.red);
+
+  send_state(to);  //send state back so the base knows whats up
 }
 
 /**
@@ -198,15 +203,16 @@ void handle_R(RF24NetworkHeader& header){
  */
 void handle_G(RF24NetworkHeader& header)
 {
-  outlet_state.green = !outlet_state.green;
-  digitalWrite(greenL, outlet_state.green);
-  digitalWrite(relayG, !outlet_state.green);
   T_message_t payload;
   network.read(header,&payload,sizeof(payload));
   printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.message,header.from_node);
-  send_state(to);
+  // toggle state
+  outlet_state.green = !outlet_state.green;
+  //set the state of led and buttons
+  digitalWrite(greenL, outlet_state.green);
+  digitalWrite(relayG, !outlet_state.green);
 
-
+  send_state(to); //send state back so the base knows whats up
 }
 
 
