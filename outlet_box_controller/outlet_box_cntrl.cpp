@@ -16,6 +16,11 @@
 #include <ctime>
 #include <stdio.h>
 #include <time.h>
+#include <system_error>
+#include <nanomsg/nn.h>
+#include <nanomsg/pair.h>
+#include <msgpack.hpp>
+
 
 /**
  * g++ -L/usr/lib main.cc -I/usr/include -o main -lrrd
@@ -54,8 +59,13 @@ struct payload_s {                  // Structure of our payload
   bool green;
 };
 
+payload_s outlet_box_state
+
 int main(int argc, char** argv) 
 {
+  int s = nn_socket(AF_SP, NN_PAIR);
+  nn_bind(s, "ipc:///tmp/outlet_box.ipc");
+  void* buf = NULL;
 	// Refer to RF24.h or nRF24L01 DS for settings
 
 	radio.begin();
@@ -66,22 +76,38 @@ int main(int argc, char** argv)
 	
 	while(1){
 
-	network.update();
-	while ( network.available() ) {     // Is there anything ready for us?
-    			
-		 	RF24NetworkHeader header;        // If so, grab it and print it out
-   			 payload_s payloadS;
-  			 network.read(header,&payloadS,sizeof(payloadS));
-			
-			printf("Received payload of type: %c : \nRED STATE: %i\nGREEN STATE: %i\n", header.type, payloadS.red, payloadS.green);
-  }	
+  	network.update();
+  	while ( network.available() ) {     // Is there anything ready for us?
+      			
+  		 	RF24NetworkHeader header;        // If so, grab it and print it out
+     			 payload_s payloadS;
+    			 network.read(header,&payloadS,sizeof(payloadS));
+  			
+  			printf("Received payload of type: %c : \nRED STATE: %i\nGREEN STATE: %i\n", header.type, payloadS.red, payloadS.green);
+    }
+
+    while((count = nn_recv(s, &buf, NN_MSG, 0)) != -1) {
+      uint8_t type = 0;
+      std::memcpy(&type, buf, 1);
+      std::cout << "type is: " << (int)type << "\n";
+      if(type == 42) break;
+      
+      msgpack::unpacked result;
+      msgpack::unpack(&result, (const char*)buf+1, count-1);
+      msgpack::object deserialized = result.get();
+      std::cout << deserialized << "\n";
+      nn_freemsg(buf);
+      std::cout << std::flush;
+  }
+    nn_close(s);
+
+
 		unsigned long now = millis();              // If it's time to send a message, send it!
 		if ( now - last_sent >= interval  ){
     			last_sent = now;
-
     			printf("Sending ..\n");
 			payload_t payloadM = { "a message!" };
-		        RF24NetworkHeader header(/*to node*/ other_node, 'G');
+		        RF24NetworkHeader header(/*to node*/ other_node, 'R');
 			bool ok = network.write(header,&payloadM,sizeof(payloadM));
 		        if (ok){
 		        	printf("ok.\n");

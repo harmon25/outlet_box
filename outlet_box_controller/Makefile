@@ -30,15 +30,16 @@ ifeq "$(RPI)" "1"
 CCFLAGS=-Ofast -mfpu=vfp -mfloat-abi=hard -march=$(ARCH) -mtune=arm1176jzf-s -std=c++0x
 endif
 
+MSGPAKFLAGS=-DMSGPACK_DISABLE_LEGACY_NIL -DMSGPACK_DISABLE_LEGACY_CONVERT
 
 # define all programs
-PROGRAMS = pihub_test pihub_send
+PROGRAMS = pihub_test pihub_send outlet_box_cntrl
 SOURCES = ${PROGRAMS:=.cpp}
 
 all: ${PROGRAMS}
 
 ${PROGRAMS}: ${SOURCES}
-	g++ ${CCFLAGS} -Wall -I../ -lrf24-bcm -lrf24network $@.cpp -o $@
+	g++ ${CCFLAGS} -Wall ${MSGPAKFLAGS} -lnanomsg -lrf24-bcm -lrf24network $@.cpp -o $@
 
 clean:
 	rm -rf $(PROGRAMS)

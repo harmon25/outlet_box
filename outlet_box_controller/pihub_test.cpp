@@ -75,9 +75,7 @@ int main(int argc, char** argv)
 			
 			printf("Received payload of type: %c : \nRED STATE: %i\nGREEN STATE: %i\n", header.type, payload.red, payload.green);
   }		  
-		 //sleep(2);
 		 delay(1000);
-		 //fclose(pFile);
 	}
 
 	return 0;
