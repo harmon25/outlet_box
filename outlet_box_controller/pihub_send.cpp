@@ -59,9 +59,10 @@ int main(int argc, char** argv)
 	// Refer to RF24.h or nRF24L01 DS for settings
 
 	radio.begin();
+  radio.setDataRate(RF24_250KBPS);
 	
 	delay(5);
-	network.begin(/*channel*/ 100, /*node address*/ this_node);
+	network.begin(/*channel*/ 115, /*node address*/ this_node);
 	radio.printDetails();
 	
 	while(1){

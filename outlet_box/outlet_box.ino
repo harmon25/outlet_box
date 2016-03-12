@@ -33,11 +33,13 @@ int RlastButtonState = LOW;   // the previous reading from the input pin
 // will quickly become a bigger number than can be stored in an int.
 long RlastDebounceTime = 0;  // the last time the output pin was toggled
 long GlastDebounceTime = 0;  // the last time the output pin was toggled
-long debounceDelay = 50;    // the debounce time; increase if the output flickers
+long debounceDelay = 80;    // the debounce time; increase if the output flickers
 
 bool send_S(uint16_t to);
 void handle_R(RF24NetworkHeader& header);
 void handle_G(RF24NetworkHeader& header);
+void handle_SW(RF24NetworkHeader& header);
+void handle_S(RF24NetworkHeader& header);
 void send_state(uint16_t to);
 void handle_G(RF24NetworkHeader& header);
 
@@ -48,13 +50,15 @@ struct S_message_t
   bool green;  //state of green outlet 0/1
 };
 
+S_message_t outlet_state = {0,0};
+
 // state message
 struct T_message_t
 {
   char message[20];    // a message
 };
 
-S_message_t outlet_state = {0,0};
+
 
 //setup radio on 9/10
 RF24 radio(9,10);                             
@@ -63,7 +67,7 @@ RF24Network network(radio);
 void setup() {
   Serial.begin(115200);
   printf_begin();
-  printf_P(PSTR("\n\rOUTLETBOX v1.1!!!!\n\r"));
+  printf_P(PSTR("\n\rOUTLETBOX v1.2!!!!\n\r"));
   
   pinMode(greenB, INPUT);
   pinMode(greenL, OUTPUT);
@@ -84,7 +88,8 @@ void setup() {
   SPI.begin();           // Bring up the RF network
   radio.begin();
   radio.setPALevel(RF24_PA_HIGH);
-  network.begin(/*channel*/ 100, /*node address*/ this_node );
+  radio.setDataRate(RF24_250KBPS);
+  network.begin(/*channel*/ 115, /*node address*/ this_node );
   
   // send state right away to tell base you are alive!
   send_state(to);
@@ -100,9 +105,12 @@ void loop() {
   // long enough since the last press to ignore any noise:
 
   // If the switch changed, due to noise or pressing:
-  if (readingR !=  RbuttonState || readingG != GbuttonState) {
-    // reset the debouncing timer
+  if (readingR !=  RbuttonState) {
+    // reset red debouncing timer
     RlastDebounceTime = millis();
+  } else if(readingG != GbuttonState ) {
+    // reset green debouncing timer
+    GlastDebounceTime = millis();
   }
   
   if ((millis() - GlastDebounceTime) > debounceDelay || (millis() -  RlastDebounceTime) > debounceDelay ) {
@@ -132,7 +140,6 @@ void loop() {
       }
     }
   }
-
   // save the reading.  Next time through the loop,
   // it'll be the lastButtonState:
   RlastButtonState = readingR;
@@ -145,8 +152,9 @@ void loop() {
     RF24NetworkHeader header;                            // If so, take a look at it
     network.peek(header);
       switch (header.type){                              // Dispatch the message to the correct handler.
-        case 'R': handle_R(header); break;
-        case 'G': handle_G(header); break;
+        case 'R': handle_SW(header); break;
+        case 'G': handle_SW(header); break;
+        case 'S': handle_S(header); break;
         default:  printf_P(PSTR("*** WARNING *** Unknown message type %c\n\r"),header.type);
                   network.read(header,0,0);
                   break;
@@ -170,6 +178,7 @@ void send_state(uint16_t to)
     }
 }
 
+
 /**
  * Send a 'S' message, the current state of outlets
  */
@@ -185,33 +194,36 @@ bool send_S(uint16_t to)
  * Handle a 'R' message
  * Add the node to the list of active nodes
  */
-void handle_R(RF24NetworkHeader& header){
+void handle_S(RF24NetworkHeader& header){
   T_message_t payload;                                                                    // The 'T' message is just a ulong, containing the time
   network.read(header,&payload,sizeof(payload));
   printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.message,header.from_node);
-  // toggle state
-  outlet_state.red = !outlet_state.red;
-  //set the state of led and buttons
-  digitalWrite(redL, outlet_state.red);
-  digitalWrite(relayR, !outlet_state.red);
-
   send_state(to);  //send state back so the base knows whats up
 }
 
 /**
  * Handle an 'G' message, the active node list
  */
-void handle_G(RF24NetworkHeader& header)
+void handle_SW(RF24NetworkHeader& header)
 {
   T_message_t payload;
   network.read(header,&payload,sizeof(payload));
   printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.message,header.from_node);
-  // toggle state
-  outlet_state.green = !outlet_state.green;
-  //set the state of led and buttons
-  digitalWrite(greenL, outlet_state.green);
-  digitalWrite(relayG, !outlet_state.green);
-
+ switch (header.type){
+    case 'R': outlet_state.red = !outlet_state.red;
+              //set the state of led and buttons
+              digitalWrite(redL, outlet_state.red);
+              digitalWrite(relayR, !outlet_state.red);
+              break;
+    case 'G':  outlet_state.green = !outlet_state.green;
+               //set the state of led and buttons
+               digitalWrite(greenL, outlet_state.green);
+               digitalWrite(relayG, !outlet_state.green);
+               break;
+    default:  printf_P(PSTR("*** WARNING *** Unknown outlet type %c\n\r"),header.type);
+              break;
+       };
+ 
   send_state(to); //send state back so the base knows whats up
 }
 

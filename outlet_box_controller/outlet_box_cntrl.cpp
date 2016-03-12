@@ -21,7 +21,6 @@
 #include <nanomsg/pair.h>
 #include <msgpack.hpp>
 
-
 /**
  * g++ -L/usr/lib main.cc -I/usr/include -o main -lrrd
  **/
@@ -59,19 +58,22 @@ struct payload_s {                  // Structure of our payload
   bool green;
 };
 
-payload_s outlet_box_state
+payload_s outlet_box_state;
 
 int main(int argc, char** argv) 
 {
   int s = nn_socket(AF_SP, NN_PAIR);
   nn_bind(s, "ipc:///tmp/outlet_box.ipc");
   void* buf = NULL;
+  int count;
 	// Refer to RF24.h or nRF24L01 DS for settings
 
 	radio.begin();
-	
+  bool setRate;
+  setRate = radio.setDataRate(RF24_250KBPS);
+  std::cout << setRate << "\n";
 	delay(5);
-	network.begin(/*channel*/ 100, /*node address*/ this_node);
+	network.begin(/*channel*/ 115, /*node address*/ this_node);
 	radio.printDetails();
 	
 	while(1){
@@ -86,7 +88,7 @@ int main(int argc, char** argv)
   			printf("Received payload of type: %c : \nRED STATE: %i\nGREEN STATE: %i\n", header.type, payloadS.red, payloadS.green);
     }
 
-    while((count = nn_recv(s, &buf, NN_MSG, 0)) != -1) {
+    if((count = nn_recv(s, &buf, NN_MSG, 0)) != -1) {
       uint8_t type = 0;
       std::memcpy(&type, buf, 1);
       std::cout << "type is: " << (int)type << "\n";
@@ -99,7 +101,8 @@ int main(int argc, char** argv)
       nn_freemsg(buf);
       std::cout << std::flush;
   }
-    nn_close(s);
+  nn_close(s);
+   
 
 
 		unsigned long now = millis();              // If it's time to send a message, send it!
@@ -116,7 +119,7 @@ int main(int argc, char** argv)
   			}
 		}
 	}
-
+  
 	return 0;
 
 }
