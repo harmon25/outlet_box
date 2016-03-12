@@ -67,7 +67,7 @@ RF24Network network(radio);
 void setup() {
   Serial.begin(115200);
   printf_begin();
-  printf_P(PSTR("\n\rOUTLETBOX v1.2!!!!\n\r"));
+  printf_P(PSTR("\n\rOUTLETBOX v1.3!!!!\n\r"));
   
   pinMode(greenB, INPUT);
   pinMode(greenL, OUTPUT);
