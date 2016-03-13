@@ -40,7 +40,7 @@ const uint16_t this_node = 00;
 // Address of the other node
 const uint16_t other_node = 01;
 
-const unsigned long interval = 10000; //ms  // How often to send 'hello world to the other unit
+const unsigned long interval = 5000; //ms  // How often to send 'hello world to the other unit
 
 unsigned long last_sent;             // When did we last send?
 unsigned long packets_sent;          // How many have we sent already
