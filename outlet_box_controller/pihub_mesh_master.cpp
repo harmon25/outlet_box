@@ -74,18 +74,18 @@ while(1)
     switch(header.type){
       // Display the incoming millis() values from the sensor nodes
       case 'M': network.read(header,&dat,sizeof(dat)); 
-                printf("Rcv %u from 0%o\n",dat,header.from_node);
+                printf("Rcv %u from %i\n",dat,  mesh.getNodeID(header.from_node));
                 break;
       // display battery percent from a particular node
       case 'B': network.read(header,&bat,sizeof(bat)); 
-                printf("Battery percent from 0%o: %u\n" ,header.from_node, bat);
+                printf("Battery percent from %i: %u\n" ,  mesh.getNodeID(header.from_node), bat);
                 break;
       // display state of outlet box
       case 'S': network.read(header,&state_payload,sizeof(state_payload)); 
-                printf("Received payload of type: %c from node: 0%o : \nRED STATE: %i\nGREEN STATE: %i\n", header.type, header.from_node, state_payload.red, state_payload.green);
+                printf("Received payload of type: %c from node: %i : \nRED STATE: %i\nGREEN STATE: %i\n", header.type, mesh.getNodeID(header.from_node), state_payload.red, state_payload.green);
                 break;
       default:  network.read(header,0,0); 
-                printf("Rcv bad type %d from 0%o\n",header.type,header.from_node); 
+                printf("Rcv bad type %d from %i\n",header.type, mesh.getNodeID(header.from_node)); 
                 break;
     }
   }

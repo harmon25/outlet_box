@@ -4,7 +4,7 @@
 #include <SPI.h>
 #include "printf.h"
 
-const int greenB = 4;  // the pin number of the pushbutton
+const int greenB = 4;  // the pin numbelsr of the pushbutton
 const int greenL = 7;  // the pin number of the LED
 
 const int relayG = 3;  // the pin number of the green relay 
@@ -88,7 +88,7 @@ void setup() {
   SPI.begin();           // Bring up the RF network
   radio.begin();
   radio.setPALevel(RF24_PA_HIGH);
-  radio.setDataRate(RF24_250KBPS);
+  //radio.setDataRate(RF24_250KBPS);
   network.begin(/*channel*/ 115, /*node address*/ this_node );
   
   // send state right away to tell base you are alive!

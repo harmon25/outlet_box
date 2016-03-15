@@ -74,7 +74,7 @@ int main(int argc, char** argv)
    			 payload_s payloadS;
   			 network.read(header,&payloadS,sizeof(payloadS));
 			
-			printf("Received payload of type: %c : \nRED STATE: %i\nGREEN STATE: %i\n", header.type, payloadS.red, payloadS.green);
+			printf("Received payload of type: %c from: %o : \nRED STATE: %i\nGREEN STATE: %i\n", header.type,header.from_node, payloadS.red, payloadS.green);
   }	
 		unsigned long now = millis();              // If it's time to send a message, send it!
 		if ( now - last_sent >= interval  ){
@@ -90,6 +90,7 @@ int main(int argc, char** argv)
       				printf("failed.\n");
   			}
 		}
+    delay(2);
 	}
 
 	return 0;

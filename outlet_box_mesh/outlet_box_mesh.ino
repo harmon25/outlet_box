@@ -1,11 +1,12 @@
+#include <EEPROM.h>
 #include <avr/pgmspace.h>
 #include <RF24Network.h>
 #include "RF24Mesh.h"
 #include <RF24.h>
 #include <SPI.h>
-#include "printf.h"
+//#include "printf.h"
 
-#define nodeID 1
+#define nodeID2 7
 
 const int greenB = 4;  // the pin number of the pushbutton
 const int greenL = 7;  // the pin number of the LED
@@ -65,8 +66,10 @@ RF24Mesh mesh(radio, network);
 
 void setup() {
   Serial.begin(115200);
-  printf_begin();
-  printf_P(PSTR("\n\rOUTLETBOX v1.5!!!!\n\r"));
+  //printf_begin();
+  Serial.println(F("OUTLETBOX v1.5!!!!\n\r"));
+  
+  //printf_P(PSTR("OUTLETBOX v1.5!!!!\n\r"));
   
   pinMode(greenB, INPUT);
   pinMode(greenL, OUTPUT);
@@ -84,12 +87,14 @@ void setup() {
   digitalWrite(relayG, !outlet_state.green);
   digitalWrite(relayR, !outlet_state.red);
  
-  mesh.setNodeID(nodeID);
+  mesh.setNodeID(nodeID2);
   mesh.begin();
-  delay(25);
-  
+  delay(5000);
+  Serial.print("NodeID: ");
+  Serial.println(mesh.getNodeID());
+  //printf_P(PSTR("NodeID: %o\n\r"),mesh.getNodeID());
   // send state right away to tell base you are alive!
-  send_state();
+  //send_state();
 }
 
 void loop() {
@@ -151,7 +156,8 @@ void loop() {
         case 'R': handle_SW(header); break;
         case 'G': handle_SW(header); break;
         case 'S': handle_S(header); break;
-        default:  printf_P(PSTR("*** WARNING *** Unknown message type %c\n\r"),header.type);
+        default:  Serial.print(F("*** WARNING *** Unknown message type: "));
+                  Serial.println(header.type);
                   network.read(header,0,0);
                   break;
       };
@@ -167,13 +173,17 @@ void send_state()
 {
   if ( !mesh.write(&outlet_state, 'S', sizeof(outlet_state)) ) {           // Notify us of the result
     if ( !mesh.checkConnection() ) {
-      Serial.println("Renewing Address");
-      mesh.renewAddress();
+       Serial.println(F("Connection to mesh failed!\nRenwing Address..."));
+       mesh.renewAddress();
     } else {
-      printf_P(PSTR("Send state FAILED \n green: %i \n red: %i \n\r"), outlet_state.green, outlet_state.red);
+      Serial.println("Send state FAILED!");
+      Serial.print(F("green: ")); Serial.println(outlet_state.green);
+      Serial.print(F("red: ")); Serial.println(outlet_state.red);
     }     
   } else {
-    printf_P(PSTR("Sent state OK \n green: %i \n red: %i \n\r"), outlet_state.green, outlet_state.red);
+      Serial.println("Send state OK!");
+      Serial.print(F("green: ")); Serial.println(outlet_state.green);
+      Serial.print(F("red: ")); Serial.println(outlet_state.red);
   }
 }
 
@@ -184,7 +194,8 @@ void send_state()
 void handle_S(RF24NetworkHeader& header){
   T_message_t payload;                                                                    // The 'T' message is just a ulong, containing the time
   network.read(header,&payload,sizeof(payload));
-  printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.message,header.from_node);
+  Serial.print(F("Received message: ")); Serial.println(payload.message);
+  Serial.print(F("From: ")); Serial.println(header.from_node);
   send_state();  //send state back so the base knows whats up
 }
 
@@ -195,7 +206,8 @@ void handle_SW(RF24NetworkHeader& header)
 {
   T_message_t payload;
   network.read(header,&payload,sizeof(payload));
-  printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.message,header.from_node);
+  Serial.print(F("Received message: ")); Serial.println(payload.message);
+  Serial.print(F("From: ")); Serial.println(header.from_node);
  switch (header.type){
     case 'R': outlet_state.red = !outlet_state.red;
               //set the state of led and buttons
@@ -207,7 +219,8 @@ void handle_SW(RF24NetworkHeader& header)
                digitalWrite(greenL, outlet_state.green);
                digitalWrite(relayG, !outlet_state.green);
                break;
-    default:  printf_P(PSTR("*** WARNING *** Unknown outlet type %c\n\r"),header.type);
+    default:   Serial.print(F("*** WARNING *** Unknown outlet type: "));
+               Serial.println(header.type);
               break;
        };
  

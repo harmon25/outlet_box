@@ -74,7 +74,7 @@ int main(int argc, char** argv)
    			 payload_s payload;
   			 network.read(header,&payload,sizeof(payload));
 			
-			printf("Received payload of type: %c : \nRED STATE: %i\nGREEN STATE: %i\n", header.type, payload.red, payload.green);
+			printf("Received payload of type: %c from: %o : \nRED STATE: %i\nGREEN STATE: %i\n", header.type,header.from_node, payload.red, payload.green);
   }		  
 		 delay(1000);
 	}

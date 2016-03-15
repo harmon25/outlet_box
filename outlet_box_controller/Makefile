@@ -33,13 +33,13 @@ endif
 MSGPAKFLAGS=-DMSGPACK_DISABLE_LEGACY_NIL -DMSGPACK_DISABLE_LEGACY_CONVERT
 
 # define all programs
-PROGRAMS = pihub_test pihub_send pihub_mesh_master
+PROGRAMS = pihub_test pihub_send pihub_mesh_master controller_ex
 SOURCES = ${PROGRAMS:=.cpp}
 
 all: ${PROGRAMS}
 
 ${PROGRAMS}: ${SOURCES}
-	g++ ${CCFLAGS} -Wall ${MSGPAKFLAGS} -lnanomsg -lrf24-bcm -lrf24network -lrf24mesh $@.cpp -o bin/$@
+	g++ ${CCFLAGS} -Wall -lmsgpack -lnanomsg -lrf24-bcm -lrf24network -lrf24mesh $@.cpp -o bin/$@
 
 clean:
 	rm -rf $(PROGRAMS)
