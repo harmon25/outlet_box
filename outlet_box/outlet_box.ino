@@ -1,3 +1,5 @@
+#include <ArduinoJson.h>
+
 #include <avr/pgmspace.h>
 #include <RF24Network.h>
 #include <RF24.h>
@@ -43,6 +45,10 @@ void handle_S(RF24NetworkHeader& header);
 void send_state(uint16_t to);
 void handle_G(RF24NetworkHeader& header);
 
+
+
+
+
 // state message
 struct S_message_t
 {
@@ -50,13 +56,23 @@ struct S_message_t
   bool green;  //state of green outlet 0/1
 };
 
-S_message_t outlet_state = {0,0};
+struct E_message
+{
+  char msg[24];    
+};
+
 
 // state message
-struct T_message_t
+struct message_json
 {
-  char message[20];    // a message
+  char msg[24];    
 };
+
+S_message_t outlet_state = {0,0};
+
+
+
+
 
 
 
@@ -152,9 +168,9 @@ void loop() {
     RF24NetworkHeader header;                            // If so, take a look at it
     network.peek(header);
       switch (header.type){                              // Dispatch the message to the correct handler.
-        case 'R': handle_SW(header); break;
-        case 'G': handle_SW(header); break;
-        case 'S': handle_S(header); break;
+        case 1: handle_SW(header); break;
+        case 2: handle_SW(header); break;
+        case 3: handle_S(header); break;
         default:  printf_P(PSTR("*** WARNING *** Unknown message type %c\n\r"),header.type);
                   network.read(header,0,0);
                   break;
@@ -184,10 +200,19 @@ void send_state(uint16_t to)
  */
 bool send_S(uint16_t to)
 {
+  StaticJsonBuffer<24> jsonBuffer;
+  JsonArray& resp_msg_array = jsonBuffer.createArray(); //use an array because it is smaller
+  resp_msg_array.add((int)outlet_state.green);
+  resp_msg_array.add((int)outlet_state.red);            
+  message_json jsonMsg;
+  //char* msgBuf;
+  int sz = resp_msg_array.printTo(jsonMsg.msg, 24); //limited to 24 chars to send in one packet
+  printf_P(PSTR("json array size: %i \n\r"), sz);
+  Serial.println(jsonMsg.msg);
   RF24NetworkHeader header(/*to node*/ to, /*type*/ 'S' /*State*/);
   printf_P(PSTR("---------------------------------\n\r"));
   printf_P(PSTR("Sending state to base\n\r"));
-  return network.write(header,&outlet_state,sizeof(outlet_state));
+  return network.write(header,&jsonMsg, sz);
 }
 
 /**
@@ -195,9 +220,9 @@ bool send_S(uint16_t to)
  * Add the node to the list of active nodes
  */
 void handle_S(RF24NetworkHeader& header){
-  T_message_t payload;                                                                    // The 'T' message is just a ulong, containing the time
+   E_message payload;
   network.read(header,&payload,sizeof(payload));
-  printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.message,header.from_node);
+  printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.msg,header.from_node);
   send_state(to);  //send state back so the base knows whats up
 }
 
@@ -206,16 +231,16 @@ void handle_S(RF24NetworkHeader& header){
  */
 void handle_SW(RF24NetworkHeader& header)
 {
-  T_message_t payload;
+  E_message payload;
   network.read(header,&payload,sizeof(payload));
-  printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.message,header.from_node);
+  printf_P(PSTR("Received message: %s from: 0%o\n\r"),payload.msg,header.from_node);
  switch (header.type){
-    case 'R': outlet_state.red = !outlet_state.red;
+    case 1: outlet_state.red = !outlet_state.red;
               //set the state of led and buttons
               digitalWrite(redL, outlet_state.red);
               digitalWrite(relayR, !outlet_state.red);
               break;
-    case 'G':  outlet_state.green = !outlet_state.green;
+    case 2:  outlet_state.green = !outlet_state.green;
                //set the state of led and buttons
                digitalWrite(greenL, outlet_state.green);
                digitalWrite(relayG, !outlet_state.green);
